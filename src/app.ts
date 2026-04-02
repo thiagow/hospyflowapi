@@ -10,8 +10,15 @@ dotenv.config();
 const app = express();
 
 app.use(express.json());
-app.use(cors());
-app.use(helmet());
+app.use(cors({
+    origin: '*', // Em produção ideal seria fixar 'https://hospyflow-app-thiagow.netlify.app'
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
+}));
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(morgan('dev'));
 
 app.get('/', (req, res) => {
