@@ -26,7 +26,7 @@ export class RequestController {
             // Better look up from user to be safe.
             // For now, assume body sends it but we verify in service.
 
-            const request = await this.service.create({ ...req.body, guestId }, tenantId);
+            const request = await this.service.create({ ...req.body, guestId, createdByUserId: req.user?.id }, tenantId);
             res.status(201).json({ status: 'success', data: request });
         } catch (err) {
             next(err);
@@ -42,7 +42,7 @@ export class RequestController {
             if (req.query.status) filter.status = req.query.status as RequestStatus;
             if (req.query.roomId) filter.roomId = req.query.roomId as string;
 
-            const requests = await this.service.findAll(tenantId, filter);
+            const requests = await this.service.findAll(tenantId, req.user!.role, req.user!.id, filter);
             res.json({ status: 'success', data: requests });
         } catch (err) {
             next(err);
@@ -68,6 +68,18 @@ export class RequestController {
 
             await this.service.delete(req.params.id as string, tenantId);
             res.status(204).send();
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    async convertToTask(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+        try {
+            const tenantId = req.user?.tenantId;
+            if (!tenantId) throw new Error('Tenant ID required');
+
+            const task = await this.service.convertToTask(req.params.id as string, req.body, tenantId);
+            res.status(201).json({ status: 'success', data: task });
         } catch (err) {
             next(err);
         }

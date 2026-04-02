@@ -9,11 +9,15 @@ import taskRouter from '../modules/tasks/task.routes';
 import receptionRouter from '../modules/reception/reception.routes';
 import requestRouter from '../modules/requests/request.routes';
 import feedbackRouter from '../modules/feedbacks/feedback.routes';
+import dashboardRouter from '../modules/dashboard/dashboard.routes';
+import planRouter from '../modules/plans/plan.routes';
+import logsRouter from '../modules/logs/logs.routes';
 
 const router = Router();
 
 router.use('/auth', authRouter);
 router.use('/tenants', tenantRouter);
+router.use('/plans', planRouter);
 router.use('/users', userRouter);
 router.use('/room-types', roomTypeRouter);
 router.use('/rooms', roomRouter);
@@ -22,5 +26,8 @@ router.use('/tasks', taskRouter);
 router.use('/reception', receptionRouter);
 router.use('/requests', requestRouter);
 router.use('/feedbacks', feedbackRouter);
+router.use('/dashboard', dashboardRouter);
+router.use('/logs', logsRouter);
+
 
 export default router;

@@ -45,6 +45,18 @@ export class ChecklistTemplateController {
         }
     }
 
+    async update(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+        try {
+            const tenantId = req.user?.tenantId;
+            if (!tenantId) throw new Error('Tenant ID required');
+
+            const template = await this.service.update(req.params.id as string, req.body, tenantId);
+            res.json({ status: 'success', data: template });
+        } catch (err) {
+            next(err);
+        }
+    }
+
     async delete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
         try {
             const tenantId = req.user?.tenantId;

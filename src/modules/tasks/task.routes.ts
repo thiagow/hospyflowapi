@@ -8,7 +8,7 @@ const controller = new TaskController();
 
 taskRouter.use(authMiddleware);
 // Tasks can be accessed by ADMIN, STAFF, RECEPTION (maybe), SAAS_ADMIN.
-taskRouter.use(roleGuard(['ADMIN', 'SAAS_ADMIN', 'STAFF']));
+taskRouter.use(roleGuard(['ADMIN', 'SAAS_ADMIN', 'STAFF', 'RECEPTION']));
 
 taskRouter.post('/', controller.create.bind(controller));
 taskRouter.get('/', controller.findAll.bind(controller));

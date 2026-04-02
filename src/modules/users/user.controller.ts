@@ -23,10 +23,19 @@ export class UserController {
 
     async findAll(req: AuthenticatedRequest, res: Response, next: NextFunction) {
         try {
-            const tenantId = req.user?.tenantId;
-            if (!tenantId) throw new Error('Tenant ID required');
+            const userRole = req.user?.role;
+            let tenantId = req.user?.tenantId;
 
-            const users = await this.userService.findAll(tenantId);
+            // If SAAS_ADMIN, they can optionally provide a tenantId filter, otherwise they see all
+            if (userRole === 'SAAS_ADMIN') {
+                tenantId = (req.query.tenantId as string) || undefined;
+            } else if (!tenantId) {
+                throw new Error('Tenant ID required');
+            }
+
+            const role = req.query.role as string;
+
+            const users = await this.userService.findAll(tenantId, role);
             res.json({ status: 'success', data: users });
         } catch (err) {
             next(err);
@@ -64,6 +73,33 @@ export class UserController {
 
             await this.userService.delete(req.params.id as string, tenantId);
             res.status(204).send();
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    async checkIn(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+        try {
+            const tenantId = req.user?.tenantId;
+            if (!tenantId) throw new Error('Tenant ID required');
+
+            const { roomId } = req.body;
+            if (!roomId) throw new Error('Room ID required');
+
+            await this.userService.checkIn(req.params.id as string, roomId, tenantId);
+            res.status(200).json({ status: 'success', message: 'Check-in successful' });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    async checkOut(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+        try {
+            const tenantId = req.user?.tenantId;
+            if (!tenantId) throw new Error('Tenant ID required');
+
+            await this.userService.checkOut(req.params.id as string, tenantId);
+            res.status(200).json({ status: 'success', message: 'Check-out successful' });
         } catch (err) {
             next(err);
         }

@@ -6,12 +6,17 @@ import { roleGuard } from '../../middlewares/roleGuard.middleware';
 const tenantRouter = Router();
 const tenantController = new TenantController();
 
-// Only SAAS_ADMIN can manage tenants
+// Only authenticated users can access tenant routes
 tenantRouter.use(authMiddleware);
-tenantRouter.use(roleGuard(['SAAS_ADMIN']));
 
-tenantRouter.post('/', tenantController.create.bind(tenantController));
-tenantRouter.get('/', tenantController.findAll.bind(tenantController));
-tenantRouter.get('/:id', tenantController.findById.bind(tenantController));
+// Routes managed by SAAS_ADMIN
+tenantRouter.get('/', roleGuard(['SAAS_ADMIN']), tenantController.findAll.bind(tenantController));
+tenantRouter.post('/', roleGuard(['SAAS_ADMIN']), tenantController.create.bind(tenantController));
+
+// Routes accessible by both SAAS_ADMIN and ADMIN (with ownership check in controller)
+tenantRouter.get('/:id', roleGuard(['SAAS_ADMIN', 'ADMIN']), tenantController.findById.bind(tenantController));
+tenantRouter.put('/:id', roleGuard(['SAAS_ADMIN', 'ADMIN']), tenantController.update.bind(tenantController));
+
+tenantRouter.delete('/:id', roleGuard(['SAAS_ADMIN']), tenantController.delete.bind(tenantController));
 
 export default tenantRouter;

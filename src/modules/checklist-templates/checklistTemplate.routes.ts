@@ -7,11 +7,14 @@ const checklistTemplateRouter = Router();
 const controller = new ChecklistTemplateController();
 
 checklistTemplateRouter.use(authMiddleware);
-checklistTemplateRouter.use(roleGuard(['ADMIN', 'SAAS_ADMIN']));
+// Manage: admin only
+checklistTemplateRouter.post('/', roleGuard(['ADMIN', 'SAAS_ADMIN']), controller.create.bind(controller));
+checklistTemplateRouter.put('/:id', roleGuard(['ADMIN', 'SAAS_ADMIN']), controller.update.bind(controller));
+checklistTemplateRouter.delete('/:id', roleGuard(['ADMIN', 'SAAS_ADMIN']), controller.delete.bind(controller));
 
-checklistTemplateRouter.post('/', controller.create.bind(controller));
-checklistTemplateRouter.get('/', controller.findAll.bind(controller));
-checklistTemplateRouter.get('/:id', controller.findById.bind(controller));
-checklistTemplateRouter.delete('/:id', controller.delete.bind(controller));
+// Read: admin and reception
+checklistTemplateRouter.get('/', roleGuard(['ADMIN', 'SAAS_ADMIN', 'RECEPTION']), controller.findAll.bind(controller));
+checklistTemplateRouter.get('/:id', roleGuard(['ADMIN', 'SAAS_ADMIN', 'RECEPTION']), controller.findById.bind(controller));
+
 
 export default checklistTemplateRouter;

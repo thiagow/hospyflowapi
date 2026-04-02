@@ -7,7 +7,7 @@ const roomRouter = Router();
 const controller = new RoomController();
 
 roomRouter.use(authMiddleware);
-roomRouter.use(roleGuard(['ADMIN', 'SAAS_ADMIN']));
+roomRouter.use(roleGuard(['ADMIN', 'SAAS_ADMIN', 'RECEPTION', 'STAFF']));
 
 roomRouter.post('/', controller.create.bind(controller));
 roomRouter.get('/', controller.findAll.bind(controller));

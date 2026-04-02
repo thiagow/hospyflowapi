@@ -47,6 +47,31 @@ export class ChecklistTemplateService {
         return template;
     }
 
+    async update(id: string, data: { name: string; items: { text: string; subtext?: string; order: number }[] }, tenantId: string) {
+        await this.findById(id, tenantId); // verify existence and tenant
+
+        // Update name
+        const updated = await prisma.checklistTemplate.update({
+            where: { id },
+            data: { name: data.name }
+        });
+
+        // Delete existing items
+        await prisma.checklistTemplateItem.deleteMany({
+            where: { templateId: id }
+        });
+
+        // Create new items
+        await prisma.checklistTemplateItem.createMany({
+            data: data.items.map(item => ({
+                ...item,
+                templateId: id
+            }))
+        });
+
+        return this.findById(id, tenantId);
+    }
+
     async delete(id: string, tenantId: string) {
         await this.findById(id, tenantId);
         return prisma.checklistTemplate.delete({

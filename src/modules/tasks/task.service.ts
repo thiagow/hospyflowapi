@@ -26,9 +26,11 @@ export class TaskService {
             }
         }
 
-        // Ensure roomId exists
-        const room = await prisma.room.findUnique({ where: { id: taskData.roomId } });
-        if (!room) throw new AppError('Room not found', 404);
+        // Ensure roomId exists if provided
+        if (taskData.roomId) {
+            const room = await prisma.room.findUnique({ where: { id: taskData.roomId } });
+            if (!room) throw new AppError('Room not found', 404);
+        }
 
         return prisma.task.create({
             data: {
@@ -76,17 +78,56 @@ export class TaskService {
     }
 
     async update(id: string, data: any, tenantId: string) {
-        await this.findById(id, tenantId);
+        const task = await this.findById(id, tenantId);
+        const { templateId, ...taskData } = data;
 
         // If status changes to COMPLETED, set completedAt
-        if (data.status === 'COMPLETED') {
-            data.completedAt = new Date();
+        if (taskData.status === 'COMPLETED' && task.status !== 'COMPLETED') {
+            taskData.completedAt = new Date();
+
+            // If this task is linked to a guest request, complete that too
+            if (task.requestId) {
+                await prisma.guestRequest.update({
+                    where: { id: task.requestId },
+                    data: {
+                        status: 'COMPLETED',
+                        resolvedAt: new Date()
+                    }
+                });
+            }
+        }
+
+        // Handle template change
+        if (templateId) {
+            const template = await prisma.checklistTemplate.findUnique({
+                where: { id: templateId },
+                include: { items: true },
+            });
+
+            if (template) {
+                // Delete existing items
+                await prisma.taskChecklistItem.deleteMany({
+                    where: { taskId: id },
+                });
+
+                // Create new items from template
+                const newItems = template.items.map((item) => ({
+                    text: item.text,
+                    subtext: item.subtext,
+                    order: item.order,
+                    checked: false,
+                }));
+
+                taskData.checklistItems = {
+                    create: newItems,
+                };
+            }
         }
 
         return prisma.task.update({
             where: { id },
-            data,
-            include: { checklistItems: true, photos: true },
+            data: taskData,
+            include: { checklistItems: { orderBy: { order: 'asc' } }, photos: true },
         });
     }
 

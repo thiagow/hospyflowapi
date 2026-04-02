@@ -39,6 +39,15 @@ export class RoomTypeService {
 
     async delete(id: string, tenantId: string) {
         await this.findById(id, tenantId);
+
+        const roomsUsingType = await prisma.room.count({
+            where: { typeId: id },
+        });
+
+        if (roomsUsingType > 0) {
+            throw new AppError('Cannot delete Room Type in use by rooms', 400);
+        }
+
         return prisma.roomType.delete({
             where: { id },
         });

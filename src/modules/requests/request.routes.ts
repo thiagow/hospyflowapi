@@ -8,8 +8,11 @@ const controller = new RequestController();
 
 requestRouter.use(authMiddleware);
 
-// Create: GUEST (and maybe RECEPTION/ADMIN on behalf?)
-requestRouter.post('/', roleGuard(['GUEST', 'RECEPTION', 'ADMIN', 'SAAS_ADMIN']), controller.create.bind(controller));
+// Create: GUEST, STAFF, RECEPTION, ADMIN, SAAS_ADMIN
+requestRouter.post('/', roleGuard(['GUEST', 'STAFF', 'RECEPTION', 'ADMIN', 'SAAS_ADMIN']), controller.create.bind(controller));
+
+// Convert to Task: ADMIN, RECEPTION
+requestRouter.post('/:id/convert', roleGuard(['ADMIN', 'RECEPTION', 'SAAS_ADMIN']), controller.convertToTask.bind(controller));
 
 // List: ADMIN, STAFF, RECEPTION, SAAS_ADMIN (Guest can see their own? logic in controller/service needed for guest view)
 // For now, let's assume this endpoint is for staff/admin. Guest view might be separate or filtered.

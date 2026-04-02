@@ -24,10 +24,21 @@ export class RoomService {
         });
     }
 
-    async findAll(tenantId: string) {
+    async findAll(tenantId: string, filters?: { status?: string; floor?: number }) {
+        const where: any = { tenantId };
+
+        if (filters?.status) {
+            where.status = filters.status;
+        }
+
+        if (filters?.floor) {
+            where.floor = filters.floor;
+        }
+
         return prisma.room.findMany({
-            where: { tenantId },
+            where,
             include: { type: true },
+            orderBy: { number: 'asc' }
         });
     }
 

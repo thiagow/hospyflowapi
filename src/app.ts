@@ -20,4 +20,22 @@ app.get('/', (req, res) => {
 
 app.use('/api', router);
 
+// Middleware de Erro Global
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // Log detalhado
+    console.error('❌ Erro Global:', err);
+    if (err instanceof Error) {
+        console.error(err.stack);
+    }
+
+    const statusCode = err.statusCode || 500;
+    const message = err.message || 'Internal Server Error';
+
+    res.status(statusCode).json({
+        status: 'error',
+        statusCode,
+        message
+    });
+});
+
 export default app;

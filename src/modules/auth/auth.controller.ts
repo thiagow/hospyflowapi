@@ -11,13 +11,13 @@ export class AuthController {
 
     async login(req: Request, res: Response, next: NextFunction) {
         try {
-            const { email, password } = req.body;
+            const { identifier, password } = req.body;
 
-            if (!email || !password) {
-                throw new AppError('Email and password are required', 400);
+            if (!identifier || !password) {
+                throw new AppError('Identifier (email or mobile) and password are required', 400);
             }
 
-            const result = await this.authService.authenticate(email, password);
+            const result = await this.authService.authenticate(identifier, password);
 
             res.status(200).json({
                 status: 'success',

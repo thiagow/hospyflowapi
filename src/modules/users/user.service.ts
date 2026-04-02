@@ -1,9 +1,58 @@
-import { UserStatus } from '@prisma/client';
+import { RoomStatus, UserStatus } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import prisma from '../../shared/prisma';
 import { AppError } from '../../shared/errors';
 
 export class UserService {
+
+
+    async checkIn(guestId: string, roomId: string, tenantId: string) {
+        const guest = await this.findById(guestId, tenantId);
+
+        const room = await prisma.room.findFirst({
+            where: { id: roomId, tenantId },
+        });
+
+        if (!room) throw new AppError('Room not found', 404);
+        if (room.status !== RoomStatus.AVAILABLE) throw new AppError('Room is not available', 400);
+
+        return prisma.$transaction([
+            prisma.user.update({
+                where: { id: guestId },
+                data: {
+                    roomId,
+                    checkinDate: new Date(),
+                    status: UserStatus.ACTIVE
+                }
+            }),
+            prisma.room.update({
+                where: { id: roomId },
+                data: { status: RoomStatus.OCCUPIED }
+            })
+        ]);
+    }
+
+    async checkOut(guestId: string, tenantId: string) {
+        const guest = await this.findById(guestId, tenantId);
+
+        if (!guest.roomId) throw new AppError('Guest is not checked in', 400);
+
+        return prisma.$transaction([
+            prisma.user.update({
+                where: { id: guestId },
+                data: {
+                    roomId: null,
+                    checkoutDate: new Date(),
+                    // status: UserStatus.INACTIVE // Maybe keep active for history? Or separate status?
+                }
+            }),
+            prisma.room.update({
+                where: { id: guest.roomId },
+                data: { status: RoomStatus.DIRTY }
+            })
+        ]);
+    }
+
     async create(data: any, tenantId: string) {
         const existing = await prisma.user.findFirst({
             where: { email: data.email, tenantId },
@@ -28,9 +77,19 @@ export class UserService {
         return userWithoutPassword;
     }
 
-    async findAll(tenantId: string) {
+    async findAll(tenantId?: string | null, role?: string) {
+        const where: any = {};
+        
+        if (tenantId !== undefined) {
+            where.tenantId = tenantId;
+        }
+        
+        if (role) {
+            where.role = role;
+        }
+
         return prisma.user.findMany({
-            where: { tenantId },
+            where,
             select: {
                 id: true,
                 name: true,
@@ -75,6 +134,9 @@ export class UserService {
 
     async delete(id: string, tenantId: string) {
         await this.findById(id, tenantId); // Check existence
-        return prisma.user.delete({ where: { id } });
+        return prisma.user.update({
+            where: { id },
+            data: { status: UserStatus.INACTIVE }
+        });
     }
 }

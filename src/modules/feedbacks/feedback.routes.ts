@@ -11,7 +11,7 @@ feedbackRouter.use(authMiddleware);
 // Guest creates feedback
 feedbackRouter.post('/', roleGuard(['GUEST', 'ADMIN']), controller.create.bind(controller));
 
-// Admin/Staff/SaaS Admin read feedback
-feedbackRouter.get('/', roleGuard(['ADMIN', 'STAFF', 'SAAS_ADMIN']), controller.findAll.bind(controller));
+// Admin/Staff/SaaS Admin/Reception read feedback
+feedbackRouter.get('/', roleGuard(['ADMIN', 'STAFF', 'SAAS_ADMIN', 'RECEPTION']), controller.findAll.bind(controller));
 
 export default feedbackRouter;

@@ -24,7 +24,13 @@ export class RoomController {
         try {
             const tenantId = req.user?.tenantId;
             if (!tenantId) throw new Error('Tenant ID required');
-            const items = await this.service.findAll(tenantId);
+
+            const filters = {
+                status: req.query.status as string,
+                floor: req.query.floor ? Number(req.query.floor) : undefined,
+            };
+
+            const items = await this.service.findAll(tenantId, filters);
             res.json({ status: 'success', data: items });
         } catch (err) {
             next(err);

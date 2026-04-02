@@ -6,9 +6,15 @@ import { AppError } from '../../shared/errors';
 import { jwtConfig } from '../../config/jwt';
 
 export class AuthService {
-    async authenticate(email: string, password: string) {
+    async authenticate(identifier: string, password: string) {
         const user = await prisma.user.findFirst({
-            where: { email },
+            where: {
+                OR: [
+                    { email: identifier },
+                    { mobile: identifier },
+                    { whatsapp: identifier }
+                ]
+            },
         });
 
         if (!user) {
@@ -19,6 +25,10 @@ export class AuthService {
 
         if (!isPasswordValid) {
             throw new AppError('Invalid email or password', 401);
+        }
+
+        if (!jwtConfig.secret) {
+            throw new Error('JWT_SECRET missing');
         }
 
         const token = jwt.sign(

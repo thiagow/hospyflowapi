@@ -1,223 +1,238 @@
 generator client {
-  provider = "prisma-client-js"
-  engineType = "library"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
+  engineType    = "library"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// === MULTI-TENANT (SaaS) ===
 model Tenant {
-  id          String   @id @default(uuid())
-  name        String
-  subdomain   String   @unique
-  logo        String?
-  plan        Plan     @relation(fields: [planId], references: [id])
-  planId      String
-  status      TenantStatus @default(ACTIVE)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  users       User[]
-  rooms       Room[]
-  roomTypes   RoomType[]
-  tasks       Task[]
-  requests    GuestRequest[]
-  feedbacks   Feedback[]
-  checklists  ChecklistTemplate[]
-  logs        SystemLog[]
+  id           String              @id @default(uuid())
+  name         String
+  subdomain    String              @unique
+  logo         String?
+  whatsapp     String?
+  cnpj         String?
+  planId       String
+  status       TenantStatus        @default(ACTIVE)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  activityLogs ActivityLog[]
+  checklists   ChecklistTemplate[]
+  feedbacks    Feedback[]
+  requests     GuestRequest[]
+  rooms        Room[]
+  roomTypes    RoomType[]
+  logs         SystemLog[]
+  tasks        Task[]
+  plan         Plan                @relation(fields: [planId], references: [id])
+  users        User[]
 }
 
 model Plan {
-  id            String   @id @default(uuid())
-  name          String
-  price         Float
-  billingCycle  BillingCycle @default(MONTHLY)
-  maxUsers      Int
-  maxRooms      Int
-  features      String[]  // Array de strings
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  tenants       Tenant[]
+  id           String       @id @default(uuid())
+  name         String
+  price        Float
+  billingCycle BillingCycle @default(MONTHLY)
+  maxUsers     Int
+  maxRooms     Int
+  features     String[]
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  tenants      Tenant[]
 }
 
-// === USUÁRIOS ===
 model User {
-  id          String   @id @default(uuid())
-  name        String
-  email       String
-  mobile      String
-  password    String   // bcrypt hash. Para GUEST: default é o CPF (sem pontuação)
-  role        UserRole
-  avatar      String?
-  status      UserStatus @default(ACTIVE)
-  tenantId    String?
-  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Campos específicos de hóspede
-  cpf         String?
-  whatsapp    String?
-  roomId      String?
-  room        Room?    @relation("GuestRoom", fields: [roomId], references: [id])
-  guestCount  Int?
-  checkinDate DateTime?
-  checkoutDate DateTime?
-
-  assignedTasks Task[]   @relation("AssignedTasks")
-  requests      GuestRequest[]
+  id            String         @id @default(uuid())
+  name          String
+  email         String
+  mobile        String
+  password      String
+  role          UserRole
+  avatar        String?
+  status        UserStatus     @default(ACTIVE)
+  tenantId      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  cpf           String?
+  whatsapp      String?
+  roomId        String?
+  guestCount    Int?
+  checkinDate   DateTime?
+  checkoutDate  DateTime?
+  activityLogs  ActivityLog[]  @relation("UserActivityLogs")
   feedbacks     Feedback[]
+  requests      GuestRequest[]
   logs          SystemLog[]
+  assignedTasks    Task[]         @relation("AssignedTasks")
+  assignedRequests GuestRequest[] @relation("AssignedRequests")
+  openedRequests   GuestRequest[] @relation("CreatedRequests")
+  room             Room?          @relation("GuestRoom", fields: [roomId], references: [id])
+  tenant           Tenant?        @relation(fields: [tenantId], references: [id])
 
   @@unique([email, tenantId])
   @@unique([mobile, tenantId])
 }
 
-// === QUARTOS ===
 model RoomType {
-  id          String  @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   description String?
   capacity    Int
   price       Float
   tenantId    String
-  tenant      Tenant  @relation(fields: [tenantId], references: [id])
-  rooms       Room[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  rooms       Room[]
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
 }
 
 model Room {
-  id          String     @id @default(uuid())
-  number      String
-  typeId      String
-  type        RoomType   @relation(fields: [typeId], references: [id])
-  status      RoomStatus @default(AVAILABLE)
-  floor       Int
-  tenantId    String
-  tenant      Tenant     @relation(fields: [tenantId], references: [id])
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  tasks       Task[]
-  guests      User[]     @relation("GuestRoom")
-  requests    GuestRequest[]
-  feedbacks   Feedback[]
+  id        String         @id @default(uuid())
+  number    String
+  typeId    String
+  status    RoomStatus     @default(AVAILABLE)
+  floor     Int
+  tenantId  String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  feedbacks Feedback[]
+  requests  GuestRequest[]
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
+  type      RoomType       @relation(fields: [typeId], references: [id])
+  tasks     Task[]
+  guests    User[]         @relation("GuestRoom")
 
   @@unique([number, tenantId])
 }
 
-// === TAREFAS E CHECKLISTS ===
 model ChecklistTemplate {
-  id          String   @id @default(uuid())
-  name        String
-  items       ChecklistTemplateItem[]
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String                  @id @default(uuid())
+  name      String
+  tenantId  String
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+  tenant    Tenant                  @relation(fields: [tenantId], references: [id])
+  items     ChecklistTemplateItem[]
 }
 
 model ChecklistTemplateItem {
-  id          String   @id @default(uuid())
-  text        String
-  subtext     String?
-  order       Int
-  templateId  String
-  template    ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  id         String            @id @default(uuid())
+  text       String
+  subtext    String?
+  order      Int
+  templateId String
+  template   ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }
 
 model Task {
-  id            String     @id @default(uuid())
-  title         String
-  description   String?
-  roomId        String
-  room          Room       @relation(fields: [roomId], references: [id])
-  assignedToId  String?
-  assignedTo    User?      @relation("AssignedTasks", fields: [assignedToId], references: [id])
-  status        TaskStatus @default(PENDING)
-  priority      TaskPriority @default(MEDIUM)
-  image         String?
-  tenantId      String
-  tenant        Tenant     @relation(fields: [tenantId], references: [id])
-  createdAt     DateTime   @default(now())
-  completedAt   DateTime?
-  updatedAt     DateTime   @updatedAt
-
+  id             String              @id @default(uuid())
+  title          String
+  description    String?
+  roomId         String?
+  assignedToId   String?
+  status         TaskStatus          @default(PENDING)
+  priority       TaskPriority        @default(MEDIUM)
+  image          String?
+  tenantId       String
+  isDaily        Boolean             @default(false)
+  createdAt      DateTime            @default(now())
+  completedAt    DateTime?
+  updatedAt      DateTime            @updatedAt
+  assignedTo     User?               @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  room           Room?               @relation(fields: [roomId], references: [id])
+  tenant         Tenant              @relation(fields: [tenantId], references: [id])
+  requestId      String?             @unique
+  request        GuestRequest?       @relation(fields: [requestId], references: [id])
   checklistItems TaskChecklistItem[]
   photos         TaskPhoto[]
 }
 
 model TaskChecklistItem {
-  id        String  @id @default(uuid())
-  text      String
-  subtext   String?
-  checked   Boolean @default(false)
-  order     Int
-  taskId    String
-  task      Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  id      String  @id @default(uuid())
+  text    String
+  subtext String?
+  checked Boolean @default(false)
+  order   Int
+  taskId  String
+  task    Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model TaskPhoto {
   id        String   @id @default(uuid())
   url       String
   taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
-// === SOLICITAÇÕES DE HÓSPEDES ===
 model GuestRequest {
   id          String        @id @default(uuid())
   guestId     String
-  guest       User          @relation(fields: [guestId], references: [id])
   roomId      String
-  room        Room          @relation(fields: [roomId], references: [id])
   type        RequestType
   description String?
   status      RequestStatus @default(PENDING)
   isUrgent    Boolean       @default(false)
+  createdByUserId String?
   tenantId    String
-  tenant      Tenant        @relation(fields: [tenantId], references: [id])
   createdAt   DateTime      @default(now())
   resolvedAt  DateTime?
   updatedAt   DateTime      @updatedAt
+  guest       User          @relation(fields: [guestId], references: [id])
+  assignedTo  User?         @relation("AssignedRequests", fields: [assignedToId], references: [id])
+  createdByUser User?       @relation("CreatedRequests", fields: [createdByUserId], references: [id])
+  assignedToId String?
+  room        Room          @relation(fields: [roomId], references: [id])
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  task        Task?
 }
 
-// === AVALIAÇÕES ===
 model Feedback {
-  id              String   @id @default(uuid())
-  guestId         String
-  guest           User     @relation(fields: [guestId], references: [id])
-  roomId          String
-  room            Room     @relation(fields: [roomId], references: [id])
-  cleaningRating  Int
-  serviceRating   Int
-  comment         String?
-  tags            String[]
-  tenantId        String
-  tenant          Tenant    @relation(fields: [tenantId], references: [id])
-  createdAt       DateTime  @default(now())
+  id             String   @id @default(uuid())
+  guestId        String
+  roomId         String
+  cleaningRating Int
+  serviceRating  Int
+  comment        String?
+  tags           String[]
+  tenantId       String
+  createdAt      DateTime @default(now())
+  guest          User     @relation(fields: [guestId], references: [id])
+  room           Room     @relation(fields: [roomId], references: [id])
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
 }
 
-// === LOGS DO SISTEMA ===
 model SystemLog {
   id          String   @id @default(uuid())
   action      String
   description String
   userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
   type        LogType  @default(INFO)
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   createdAt   DateTime @default(now())
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
 }
 
-// === ENUMS ===
+model ActivityLog {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User?    @relation("UserActivityLogs", fields: [userId], references: [id])
+
+  @@index([tenantId])
+}
+
 enum UserRole {
   SAAS_ADMIN
   ADMIN
@@ -271,8 +286,10 @@ enum RequestType {
 
 enum RequestStatus {
   PENDING
+  ASSIGNED
   IN_PROGRESS
   COMPLETED
+  CANCELLED
 }
 
 enum LogType {
