@@ -25,7 +25,7 @@ app.get('/', (req, res) => {
     res.json({ message: 'HospyFlow API is running' });
 });
 
-app.use('/api', router);
+app.use(['/api', '/'], router);
 
 // Middleware de Erro Global
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
